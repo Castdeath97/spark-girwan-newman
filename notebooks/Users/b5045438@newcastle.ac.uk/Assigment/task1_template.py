@@ -36,12 +36,6 @@ ratings.count()
 
 # COMMAND ----------
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# COMMAND ----------
-
 # MAGIC %md ### Graphical and Numerical Summaries
 # MAGIC 
 # MAGIC #### Ratings Histogram
@@ -56,7 +50,7 @@ display(ratings)
 
 # COMMAND ----------
 
-# MAGIC %md ### Fields Numerical Summaries
+# MAGIC %md #### Fields Numerical Summaries
 
 # COMMAND ----------
 
@@ -69,33 +63,98 @@ ratings.describe().show()
 # COMMAND ----------
 
 # MAGIC %md ## Construction of ALS Reccomendation Model
+# MAGIC 
+# MAGIC To construct the reccomendation model, an explicit collaborative filter methood which uses ratings directly from the movie lens dataset is needed. However, a problem is that the movie ratings tend to be sparse. Hence, missing ratings need to be filled with a method like Alternating Least Squares which uses matrix factorisation to approximate ratings via optimisation.
+# MAGIC 
+# MAGIC ### Imports
 
 # COMMAND ----------
 
-from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.recommendation import ALS
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from pyspark.ml.evaluation import RegressionEvaluator
 
 # COMMAND ----------
 
-ratings = data.map(lambda l: l.split(','))\
-    .map(lambda l: Rating(int(l[0]), int(l[1]), float(l[2])))
-
-# Build the recommendation model using Alternating Least Squares
-rank = 10
-numIterations = 10
-model = ALS.train(ratings, rank, numIterations)
-
-# Evaluate the model on training data
-testdata = ratings.map(lambda p: (p[0], p[1]))
-predictions = model.predictAll(testdata).map(lambda r: ((r[0], r[1]), r[2]))
-ratesAndPreds = ratings.map(lambda r: ((r[0], r[1]), r[2])).join(predictions)
-MSE = ratesAndPreds.map(lambda r: (r[1][0] - r[1][1])**2).mean()
-print("Mean Squared Error = " + str(MSE))
-
-# Save and load model
-model.save(sc, "target/tmp/myCollaborativeFilter")
-sameModel = MatrixFactorizationModel.load(sc, "target/tmp/myCollaborativeFilter")
+# MAGIC %md ### Test Train Split
+# MAGIC 
+# MAGIC The data will be split into a trainning for the fit and a testing set for the evaulation later. A 80% 20% train and test split is used here as with the rest of the models used for the assignment. 
 
 # COMMAND ----------
 
-# Build the recommendation model using Alternating Least Squares based on implicit ratings
-model = ALS.trainImplicit(ratings, rank, numIterations, alpha=0.01)
+(train, test) = ratings.randomSplit([0.80, 0.20], seed = 1) # seed for reproducability 
+
+# COMMAND ----------
+
+# MAGIC %md ### ALS Construction
+# MAGIC 
+# MAGIC The ALS is constructed by using the userIds to represent users, the movieIds to represent the items and the ratings column to represent the rating to fill.  Since the rating is not negative it, the non negative is True and preferences are not implicit
+
+# COMMAND ----------
+
+als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
+          nonnegative = True, implicitPrefs = False)
+
+# COMMAND ----------
+
+# Helps prevent overflows
+sc.setCheckpointDir('/checkpoint')
+ALS.checkpointInterval = 2
+
+# COMMAND ----------
+
+# MAGIC %md ### Tuning Hyperparameters using Cross Validation 
+# MAGIC 
+# MAGIC By using k fold cross validation, we can compare ALS models using different hyper parameters to pick the ideal hyperparameters. For ALS, the parameters we will tune will be:
+# MAGIC * rank: Number of features to discover
+# MAGIC * maxIter: the maximum number of iterations the algorithm is allowed to run
+# MAGIC * regParam: regularization parameter to limit overfitting
+
+# COMMAND ----------
+
+# MAGIC %md #### Create Grid
+
+# COMMAND ----------
+
+param_grid = ParamGridBuilder() \
+           .addGrid(als.rank, [10, 85]) \
+           .addGrid(als.maxIter, [5, 55]) \
+           .addGrid(als.regParam, [.01, .125]) \
+           .build()
+
+# COMMAND ----------
+
+# MAGIC %md #### Create RMSE Evaluator
+
+# COMMAND ----------
+
+# Define evaluator as RMSE and print length of evaluator
+evaluator = RegressionEvaluator(metricName="rmse",
+labelCol="rating", predictionCol="prediction")
+
+# COMMAND ----------
+
+# MAGIC %md #### Cross Validation and Best Model
+
+# COMMAND ----------
+
+# create 5 fold CV using ALS and created grid
+cv = CrossValidator(
+  estimator= als, estimatorParamMaps=param_grid,
+  evaluator=evaluator, numFolds=5)
+
+model = cv.fit(train)
+best_model = model.bestModel
+
+# COMMAND ----------
+
+best_model.getRank()
+
+# COMMAND ----------
+
+best_model.getMaxIter()
+
+# COMMAND ----------
+
+best_model.regParam()
