@@ -77,6 +77,20 @@ from pyspark.ml.evaluation import RegressionEvaluator
 
 # COMMAND ----------
 
+# MAGIC %md ### Data Cleaning
+
+# COMMAND ----------
+
+ratings = ratings.withColumn("userId", ratings["userId"].cast("float"))
+ratings = ratings.withColumn("movieId", ratings["movieId"].cast("float"))
+ratings = ratings.withColumn("rating", ratings["rating"].cast("float"))
+
+# COMMAND ----------
+
+ratings = ratings.drop('timestamp')
+
+# COMMAND ----------
+
 # MAGIC %md ### Test Train Split
 # MAGIC 
 # MAGIC The data will be split into a trainning for the fit and a testing set for the evaulation later. A 80% 20% train and test split is used here as with the rest of the models used for the assignment. 
@@ -98,18 +112,10 @@ als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
 
 # COMMAND ----------
 
-# Helps prevent overflows
-sc.setCheckpointDir('/checkpoint')
-ALS.checkpointInterval = 2
-
-# COMMAND ----------
-
 # MAGIC %md ### Tuning Hyperparameters using Cross Validation 
 # MAGIC 
 # MAGIC By using k fold cross validation, we can compare ALS models using different hyper parameters to pick the ideal hyperparameters. For ALS, the parameters we will tune will be:
 # MAGIC * rank: Number of features to discover
-# MAGIC * maxIter: the maximum number of iterations the algorithm is allowed to run
-# MAGIC * regParam: regularization parameter to limit overfitting
 
 # COMMAND ----------
 
@@ -118,9 +124,7 @@ ALS.checkpointInterval = 2
 # COMMAND ----------
 
 param_grid = ParamGridBuilder() \
-           .addGrid(als.rank, [10, 85]) \
-           .addGrid(als.maxIter, [5, 55]) \
-           .addGrid(als.regParam, [.01, .125]) \
+           .addGrid(als.rank, [1, 3, 5, 10]) \
            .build()
 
 # COMMAND ----------
@@ -129,7 +133,6 @@ param_grid = ParamGridBuilder() \
 
 # COMMAND ----------
 
-# Define evaluator as RMSE and print length of evaluator
 evaluator = RegressionEvaluator(metricName="rmse",
 labelCol="rating", predictionCol="prediction")
 
@@ -139,22 +142,53 @@ labelCol="rating", predictionCol="prediction")
 
 # COMMAND ----------
 
-# create 5 fold CV using ALS and created grid
 cv = CrossValidator(
   estimator= als, estimatorParamMaps=param_grid,
-  evaluator=evaluator, numFolds=5)
+  evaluator=evaluator, numFolds=3)
 
+
+# Run cross-validation, and choose the best set of parameters.
 model = cv.fit(train)
 best_model = model.bestModel
 
 # COMMAND ----------
 
-best_model.getRank()
+best_model.rank
 
 # COMMAND ----------
 
-best_model.getMaxIter()
+
 
 # COMMAND ----------
 
-best_model.regParam()
+predictions = model.transform(test)
+rmse = evaluator.evaluate(predictions)
+print("Root-mean-square error = " + str(rmse))
+
+# COMMAND ----------
+
+test
+
+# COMMAND ----------
+
+(training, test) = ratings.randomSplit([0.8, 0.2])
+evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating",
+                                predictionCol="prediction")
+als = ALS(maxIter=5, regParam=0.01, userCol="userId", itemCol="movieId", ratingCol="rating",
+          coldStartStrategy="drop")
+paramGrid = ParamGridBuilder() \
+    .addGrid(als.rank, [10, 100]) \
+    .addGrid(als.regParam, [0.1, 0.01]) \
+    .build()
+crossval = CrossValidator(estimator=als,
+                          estimatorParamMaps=paramGrid,
+                          evaluator=BinaryClassificationEvaluator(),
+                          numFolds=2)
+cvModel = crossval.fit(training)
+
+predictions = model.transform(test)
+rmse = evaluator.evaluate(predictions)
+print("Root-mean-square error = " + str(rmse))
+
+# COMMAND ----------
+
