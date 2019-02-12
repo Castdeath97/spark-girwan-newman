@@ -157,6 +157,11 @@ distinctUserIds2 = edges.select("userId2").distinct()
 
 # COMMAND ----------
 
+distinctUserIds1 = distinctUserIds1.withColumnRenamed("userId1", "userId")
+distinctUserIds2 = distinctUserIds2.withColumnRenamed("userId2", "userId")
+
+# COMMAND ----------
+
 nodes = distinctUserIds1.union(distinctUserIds2)
 
 # COMMAND ----------
@@ -165,7 +170,22 @@ nodes.count()
 
 # COMMAND ----------
 
-# MAGIC %md ### Nodes
+# MAGIC %md ### Adjacency Lists
+
+# COMMAND ----------
+
+# Find lists for id1 to id 2 direction and vice versa
+id1List = edges.rdd.map(lambda x: (x[0], (x[1], x[2])))
+id2List = edges.rdd.map(lambda x: (x[1], (x[0], x[2])))
+
+# aggregate results
+unionList = id1List.union(id2List)
+aggList = unionList.aggregateByKey(list(), lambda x, y: x + [y], lambda x, y: x+y) 
+adjLists = aggList.map(lambda x: (x[0], dict(x[1])))
+
+# COMMAND ----------
+
+display(adjLists.collect())
 
 # COMMAND ----------
 
@@ -194,6 +214,10 @@ adjLists = sc.pickleFile(ALL_ADJLIST_SMALL_TEXT).collectAsMap()
 
 # COMMAND ----------
 
+# MAGIC %md ### Graph
+
+# COMMAND ----------
+
 # MAGIC %md create a `Graph()`   object and add all nodes and adjacency lists
 
 # COMMAND ----------
@@ -202,7 +226,7 @@ graph = Graph('user-user-network', nodes, adjLists)
 
 # COMMAND ----------
 
-# MAGIC %md # your Girwan-Newman implementation goes here
+# MAGIC %md # Girwan-Newman Implementation
 
 # COMMAND ----------
 
