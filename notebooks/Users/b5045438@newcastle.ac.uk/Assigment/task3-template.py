@@ -97,12 +97,12 @@ import os,sys
 EDGES_SMALL_PARQUET = "/FileStore/tables/edges-small.parquet"
 
 # Checkpoint files (to facilitate partial rerun during debugging)
-ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small5.txt"
-ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small5.txt"
-SHORTEST_PATH_SMALL =   "/FileStore/tables/150454388/shortest-paths-small5.txt"
+ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small.txt"
+ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small.txt"
+SHORTEST_PATH_SMALL =   "/FileStore/tables/150454388/shortest-paths-small.txt"
 
 # OUT . the output you should produce containing all discovered communities (list of lists of graph nodes)
-CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small5.txt"
+CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small.txt"
 
 # COMMAND ----------
 
@@ -165,6 +165,10 @@ nodes = distinctUserIds1.union(distinctUserIds2).distinct()
 
 # COMMAND ----------
 
+display(edges.collect())
+
+# COMMAND ----------
+
 # MAGIC %md ### Adjacency Lists
 # MAGIC 
 # MAGIC Create Adjacency list by creating lists for edges from first id direction and the second id, joining the two lists and then aggregating them.
@@ -183,6 +187,14 @@ adjLists = aggList.map(lambda x: (x[0], dict(x[1])))
 # COMMAND ----------
 
 # MAGIC %md ### checkpoint save nodes and lists
+
+# COMMAND ----------
+
+# MAGIC %fs rm -r "dbfs:/FileStore/tables/150454388/nodes-small.txt"
+
+# COMMAND ----------
+
+# MAGIC %fs rm -r "dbfs:/FileStore/tables/150454388/adjlist-small.txt"
 
 # COMMAND ----------
 
@@ -226,8 +238,8 @@ graph = Graph('user-user-network', nodes, adjLists)
 
 # COMMAND ----------
 
-k = 650
-noOfCom = 20
+k = 10000
+noOfCom = 6
 
 # COMMAND ----------
 
@@ -266,3 +278,15 @@ print(communities)
 # COMMAND ----------
 
 print([len(l) for l in communities])
+
+# COMMAND ----------
+
+# MAGIC %md ##### Saving the Communities
+
+# COMMAND ----------
+
+# MAGIC %fs rm -r "dbfs:/FileStore/tables/150454388/ConnectedComponents-small.txt"
+
+# COMMAND ----------
+
+sc.parallelize(communities).saveAsPickleFile(SHORTEST_PATH_SMALL)
