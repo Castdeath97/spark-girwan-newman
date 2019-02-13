@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %md # task: train ALS models on the entire `ratings` dartaset
+# MAGIC %md # task: train ALS models on the entire `ratings` dataset
 # MAGIC 
 # MAGIC * load ratings.csv file (provided)
 # MAGIC * use ratings.csv to train a ALS model to provide recommendations
@@ -16,12 +16,7 @@
 
 # COMMAND ----------
 
-import pandas as pd
-import pyspark.sql.functions as f
-
-# COMMAND ----------
-
-# file location
+# file locations
 RATINGS_SMALL_PARQUET = "/FileStore/tables/ratings-small.parquet"
 
 # COMMAND ----------
@@ -78,12 +73,8 @@ from pyspark.ml.evaluation import RegressionEvaluator
 # COMMAND ----------
 
 # MAGIC %md ### Data Cleaning
-
-# COMMAND ----------
-
-ratings = ratings.withColumn("userId", ratings["userId"].cast("float"))
-ratings = ratings.withColumn("movieId", ratings["movieId"].cast("float"))
-ratings = ratings.withColumn("rating", ratings["rating"].cast("float"))
+# MAGIC 
+# MAGIC Drop timestamps as it will not be useful for the rest of the analysis.
 
 # COMMAND ----------
 
@@ -97,18 +88,19 @@ ratings = ratings.drop('timestamp')
 
 # COMMAND ----------
 
-(train, test) = ratings.randomSplit([0.80, 0.20], seed = 1) # seed for reproducability 
+(train, test) = ratings.randomSplit([0.80, 0.20], seed = 1234) # seed for reproducability 
 
 # COMMAND ----------
 
 # MAGIC %md ### ALS Construction
 # MAGIC 
-# MAGIC The ALS is constructed by using the userIds to represent users, the movieIds to represent the items and the ratings column to represent the rating to fill.  Since the rating is not negative it, the non negative is True and preferences are not implicit
+# MAGIC The ALS is constructed by using the userIds to represent users, the movieIds to represent the items and the ratings column to represent the rating to fill.  Since the rating is not negative it, the non negative is True and preferences are not implicit. Also, a cold start strategy of drop is used to resolve the cold start problem.
 
 # COMMAND ----------
 
 als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
-          nonnegative = True, implicitPrefs = False)
+          nonnegative = True, implicitPrefs = False,
+          coldStartStrategy = 'drop')
 
 # COMMAND ----------
 
@@ -124,7 +116,7 @@ als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
 # COMMAND ----------
 
 param_grid = ParamGridBuilder() \
-           .addGrid(als.rank, [1, 3, 5, 10]) \
+           .addGrid(als.rank, [10, 5, 1]) \
            .build()
 
 # COMMAND ----------
@@ -133,8 +125,7 @@ param_grid = ParamGridBuilder() \
 
 # COMMAND ----------
 
-evaluator = RegressionEvaluator(metricName="rmse",
-labelCol="rating", predictionCol="prediction")
+evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating", predictionCol="prediction")
 
 # COMMAND ----------
 
@@ -146,7 +137,6 @@ cv = CrossValidator(
   estimator= als, estimatorParamMaps=param_grid,
   evaluator=evaluator, numFolds=3)
 
-
 # Run cross-validation, and choose the best set of parameters.
 model = cv.fit(train)
 best_model = model.bestModel
@@ -157,38 +147,10 @@ best_model.rank
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-predictions = model.transform(test)
+predictions = best_model.transform(test)
 rmse = evaluator.evaluate(predictions)
 print("Root-mean-square error = " + str(rmse))
 
 # COMMAND ----------
 
-test
-
-# COMMAND ----------
-
-(training, test) = ratings.randomSplit([0.8, 0.2])
-evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating",
-                                predictionCol="prediction")
-als = ALS(maxIter=5, regParam=0.01, userCol="userId", itemCol="movieId", ratingCol="rating",
-          coldStartStrategy="drop")
-paramGrid = ParamGridBuilder() \
-    .addGrid(als.rank, [10, 100]) \
-    .addGrid(als.regParam, [0.1, 0.01]) \
-    .build()
-crossval = CrossValidator(estimator=als,
-                          estimatorParamMaps=paramGrid,
-                          evaluator=BinaryClassificationEvaluator(),
-                          numFolds=2)
-cvModel = crossval.fit(training)
-
-predictions = model.transform(test)
-rmse = evaluator.evaluate(predictions)
-print("Root-mean-square error = " + str(rmse))
-
-# COMMAND ----------
-
+display(predictions)
