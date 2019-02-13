@@ -81,6 +81,12 @@
 
 # COMMAND ----------
 
+# MAGIC %md ## Library and Method Loading
+# MAGIC 
+# MAGIC Load appropriate libraries, methods and file location constants.
+
+# COMMAND ----------
+
 import pandas as pd
 import pyspark.sql.functions as f
 import os,sys
@@ -89,22 +95,14 @@ import os,sys
 
 # IN:
 EDGES_SMALL_PARQUET = "/FileStore/tables/edges-small.parquet"
-# EDGES_100K_PARQUET = "/FileStore/tables/edges-100K.parquet"
-
-# ALL_NODES_100K_TEXT = "/FileStore/tables/nodes-100K.txt"
-# ALL_ADJLIST_100K_TEXT =  "/FileStore/tables/adjlist-100K.txt"
 
 # Checkpoint files (to facilitate partial rerun during debugging)
-ALL_NODES_SMALL_TEXT = "/FileStore/tables/nodes-small.txt"
-ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/adjlist-small.txt"
+ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small.txt"
+ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small.txt"
 SHORTEST_PATH_SMALL =   "/FileStore/tables/shortest-paths-small.txt"
 
-# SHORTEST_PATH_50K =   "/FileStore/tables/shortest-paths-50k.txt"
-# SHORTEST_PATH_100K =   "/FileStore/tables/shortest-paths-100k.txt"
-
 # OUT . the output you should produce containing all discovered communities (list of lists of graph nodes)
-# CC_SMALL = "/FileStore/tables/ConnectedComponents-small.txt"
-CC_SMALL = "/FileStore/tables/<your id>/ConnectedComponents-small.txt"
+CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small.txt"
 
 # COMMAND ----------
 
@@ -148,29 +146,28 @@ edges.count()
 
 # COMMAND ----------
 
-# MAGIC %md ### Nodes
+# MAGIC %md ## Creating Data Structures
+# MAGIC ### Nodes
+# MAGIC Find nodes by selecting user Ids from edges and creating a distinct union of both ids.
 
 # COMMAND ----------
 
-distinctUserIds1 = edges.select("userId1").distinct()
-distinctUserIds2 = edges.select("userId2").distinct()
+edges = edges.rdd
 
 # COMMAND ----------
 
-distinctUserIds1 = distinctUserIds1.withColumnRenamed("userId1", "userId")
-distinctUserIds2 = distinctUserIds2.withColumnRenamed("userId2", "userId")
+distinctUserIds1 = edges.map(lambda x: x["userId1"])
+distinctUserIds2 = edges.map(lambda x: x["userId2"])
 
 # COMMAND ----------
 
-nodes = distinctUserIds1.union(distinctUserIds2)
-
-# COMMAND ----------
-
-nodes.count()
+nodes = distinctUserIds1.union(distinctUserIds2).distinct().collect()
 
 # COMMAND ----------
 
 # MAGIC %md ### Adjacency Lists
+# MAGIC 
+# MAGIC Create Adjacency list by creating lists for edges from first id direction and the second id, joining the two lists and then aggregating them.
 
 # COMMAND ----------
 
@@ -200,7 +197,7 @@ adjLists.saveAsPickleFile(ALL_ADJLIST_SMALL_TEXT)
 
 # COMMAND ----------
 
-# MAGIC %md ### checkpoint. load nodes and adjlist from file
+# MAGIC %md ## checkpoint. load nodes and adjlist from file
 
 # COMMAND ----------
 
@@ -211,10 +208,9 @@ nodes = nodes_rdd.collect()
 ## adjLists is an RDD representing a dictionary of dictionaries (the adjlist). the collectAsMap() method reconstructs the original dictionary
 adjLists = sc.pickleFile(ALL_ADJLIST_SMALL_TEXT).collectAsMap()
 
-
 # COMMAND ----------
 
-# MAGIC %md ### Graph
+# MAGIC %md ### Graph Object
 
 # COMMAND ----------
 
@@ -226,7 +222,30 @@ graph = Graph('user-user-network', nodes, adjLists)
 
 # COMMAND ----------
 
-# MAGIC %md # Girwan-Newman Implementation
+# MAGIC %md ## Girwan-Newman Implementation
 
 # COMMAND ----------
 
+k = 800
+
+# COMMAND ----------
+
+ncc = number_connected_components(graph)
+
+while ncc == 1:
+  edges = get_top_k_edges_with_highest_betweenness(sc, graph, k)
+  for edge in edges:
+    graph.remove_edge(edge[0], edge[1])
+  ncc = number_connected_components(graph)
+
+# COMMAND ----------
+
+ncc
+
+# COMMAND ----------
+
+edges
+
+# COMMAND ----------
+
+type(adjLists)
