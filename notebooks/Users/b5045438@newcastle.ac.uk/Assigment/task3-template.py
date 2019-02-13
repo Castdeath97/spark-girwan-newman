@@ -97,12 +97,12 @@ import os,sys
 EDGES_SMALL_PARQUET = "/FileStore/tables/edges-small.parquet"
 
 # Checkpoint files (to facilitate partial rerun during debugging)
-ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small2.txt"
-ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small2.txt"
-SHORTEST_PATH_SMALL =   "/FileStore/tables/150454388/shortest-paths-small2.txt"
+ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small5.txt"
+ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small5.txt"
+SHORTEST_PATH_SMALL =   "/FileStore/tables/150454388/shortest-paths-small5.txt"
 
 # OUT . the output you should produce containing all discovered communities (list of lists of graph nodes)
-CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small2.txt"
+CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small5.txt"
 
 # COMMAND ----------
 
@@ -226,13 +226,14 @@ graph = Graph('user-user-network', nodes, adjLists)
 
 # COMMAND ----------
 
-k = 800
+k = 650
+noOfCom = 20
 
 # COMMAND ----------
 
 ncc = number_connected_components(graph)
 
-while ncc == 1:
+while ncc < noOfCom:
   edges = get_top_k_edges_with_highest_betweenness(sc, graph, k)
   for edge in edges:
     graph.remove_edge(edge[0], edge[1])
