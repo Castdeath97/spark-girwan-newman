@@ -222,6 +222,10 @@ graph = Graph('user-user-network', nodes, adjLists)
 
 # COMMAND ----------
 
+# MAGIC %md ### Algorithm
+
+# COMMAND ----------
+
 k = 800
 
 # COMMAND ----------
@@ -236,12 +240,28 @@ while ncc == 1:
 
 # COMMAND ----------
 
+# MAGIC %md ### Output
+
+# COMMAND ----------
+
+# MAGIC %md #### Number of Connected Components
+
+# COMMAND ----------
+
 ncc
 
 # COMMAND ----------
 
-edges
+# MAGIC %md #### Communities
 
 # COMMAND ----------
 
-type(adjLists)
+communities = [com for com in connected_components(graph)]
+
+# COMMAND ----------
+
+print(communities)
+
+# COMMAND ----------
+
+print([len(l) for l in communities])
