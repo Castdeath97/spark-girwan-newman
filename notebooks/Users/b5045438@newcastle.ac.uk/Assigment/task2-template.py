@@ -102,24 +102,24 @@ display(df2)
 
 # COMMAND ----------
 
-j_df = df1.join(df2, on = ["movieId"], how = "outer")
+jDf = df1.join(df2, on = ["movieId"], how = "outer")
 
 # COMMAND ----------
 
-j_df.count()
+jDf.count()
 
 # COMMAND ----------
 
 # restrict direction
-j_df = j_df[(j_df['userId1'] < j_df['userId2'])]
+jDf = jDf[(jDf['userId1'] < jDf['userId2'])]
 
 # COMMAND ----------
 
-display(j_df)
+display(jDf)
 
 # COMMAND ----------
 
-j_df.count()
+jDf.count()
 
 # COMMAND ----------
 
