@@ -1,13 +1,4 @@
 # Databricks notebook source
-# MAGIC %md # task: create a user-user network from the raw `ratings` dataset
-# MAGIC 
-# MAGIC * load ratings file (code provided)
-# MAGIC * generate a set of edges of the form `[(u,v,w)]` where each edge represents the fact that users `u`,`v` have both rated the same `w` movies (ie if they have both rated movie1, movie2, the edge weigth will be 2)
-# MAGIC  * you should have 164054 edges
-# MAGIC * save the set of edges to a file as indicated below. **Make sure you name the file using your `<id>` as indicated below, to avoid conflicts with other students within the file workspace**
-
-# COMMAND ----------
-
 # MAGIC %md ## Library and Data Loading
 # MAGIC 
 # MAGIC Load appropriate libraries and ratings file. Also create constant for edges file location.
@@ -49,18 +40,6 @@ ratings.agg(f.countDistinct('userId')).show()
 # COMMAND ----------
 
 # MAGIC %md ## Finding Edges
-
-# COMMAND ----------
-
-# MAGIC %md #add your code here. 
-# MAGIC 
-# MAGIC you need to construct a RDD consisting of edges of the form:
-# MAGIC 
-# MAGIC `    [(source_node, target_node, weight)]`
-# MAGIC     
-# MAGIC     for example: `[(1,6,1), (1,8,1),(2,3,1), (2,4,1)]`
-# MAGIC     
-# MAGIC please name the RDD with edges `weightedEdges`
 
 # COMMAND ----------
 
