@@ -97,12 +97,12 @@ import os,sys
 EDGES_SMALL_PARQUET = "/FileStore/tables/edges-small.parquet"
 
 # Checkpoint files (to facilitate partial rerun during debugging)
-ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small.txt"
-ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small.txt"
-SHORTEST_PATH_SMALL =   "/FileStore/tables/shortest-paths-small.txt"
+ALL_NODES_SMALL_TEXT = "/FileStore/tables/150454388/nodes-small2.txt"
+ALL_ADJLIST_SMALL_TEXT =  "/FileStore/tables/150454388/adjlist-small2.txt"
+SHORTEST_PATH_SMALL =   "/FileStore/tables/150454388/shortest-paths-small2.txt"
 
 # OUT . the output you should produce containing all discovered communities (list of lists of graph nodes)
-CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small.txt"
+CC_SMALL = "/FileStore/tables/150454388/ConnectedComponents-small2.txt"
 
 # COMMAND ----------
 
@@ -161,7 +161,7 @@ distinctUserIds2 = edges.map(lambda x: x["userId2"])
 
 # COMMAND ----------
 
-nodes = distinctUserIds1.union(distinctUserIds2).distinct().collect()
+nodes = distinctUserIds1.union(distinctUserIds2).distinct()
 
 # COMMAND ----------
 
@@ -172,17 +172,13 @@ nodes = distinctUserIds1.union(distinctUserIds2).distinct().collect()
 # COMMAND ----------
 
 # Find lists for id1 to id 2 direction and vice versa
-id1List = edges.rdd.map(lambda x: (x[0], (x[1], x[2])))
-id2List = edges.rdd.map(lambda x: (x[1], (x[0], x[2])))
+id1List = edges.map(lambda x: (x[0], (x[1], x[2])))
+id2List = edges.map(lambda x: (x[1], (x[0], x[2])))
 
 # aggregate results
 unionList = id1List.union(id2List)
 aggList = unionList.aggregateByKey(list(), lambda x, y: x + [y], lambda x, y: x+y) 
 adjLists = aggList.map(lambda x: (x[0], dict(x[1])))
-
-# COMMAND ----------
-
-display(adjLists.collect())
 
 # COMMAND ----------
 
