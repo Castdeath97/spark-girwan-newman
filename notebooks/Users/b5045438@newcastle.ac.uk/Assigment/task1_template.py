@@ -1,14 +1,4 @@
 # Databricks notebook source
-# MAGIC %md # task: train ALS models on the entire `ratings` dataset
-# MAGIC 
-# MAGIC * load ratings.csv file (provided)
-# MAGIC * use ratings.csv to train a ALS model to provide recommendations
-# MAGIC * evaluate model performance using RSME. Possibly suggest oter metrics, please justifiy if you use other metrics
-# MAGIC * use GridSearch or other methods to adjust model Hyperparameters 
-# MAGIC * comment on computational cost of optimisation, and the improvements achieved over the baseline model
-
-# COMMAND ----------
-
 # MAGIC %md # Task 1
 # MAGIC ## Data Loading
 # MAGIC 
