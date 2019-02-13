@@ -115,7 +115,7 @@ als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
 
 # COMMAND ----------
 
-param_grid = ParamGridBuilder() \
+paramGrid = ParamGridBuilder() \
            .addGrid(als.rank, [10, 5, 1]) \
            .build()
 
@@ -134,20 +134,20 @@ evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating", prediction
 # COMMAND ----------
 
 cv = CrossValidator(
-  estimator= als, estimatorParamMaps=param_grid,
+  estimator= als, estimatorParamMaps=paramGrid,
   evaluator=evaluator, numFolds=3)
 
 # Run cross-validation, and choose the best set of parameters.
 model = cv.fit(train)
-best_model = model.bestModel
+bestModel = model.bestModel
 
 # COMMAND ----------
 
-best_model.rank
+bestModel.rank
 
 # COMMAND ----------
 
-predictions = best_model.transform(test)
+predictions = bestModel.transform(test)
 rmse = evaluator.evaluate(predictions)
 print("Root-mean-square error = " + str(rmse))
 
