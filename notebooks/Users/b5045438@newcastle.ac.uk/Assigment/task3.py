@@ -83,7 +83,7 @@ display(edges.collect())
 
 # MAGIC %md ### Adjacency Lists
 # MAGIC 
-# MAGIC Create Adjacency list by creating lists for edges from first id direction and the second id, joining the two lists and then aggregating them.
+# MAGIC Create Adjacency list by creating lists for edges in the following format (node, (connected node, weight)) in both first id direction and the second id direction, and then joining and aggregating the two lists.
 
 # COMMAND ----------
 
@@ -143,15 +143,17 @@ graph = Graph('user-user-network', nodes, adjLists)
 # COMMAND ----------
 
 # MAGIC %md ## Girwan-Newman Implementation
+# MAGIC 
+# MAGIC The Girwan-Newman algorithm is used here to discover communities to hopefully help improve the accuracy of predictions by using it to divide the user-user matrix into communities that can be fed to the ALS algorithm for better results.
+# MAGIC 
+# MAGIC ### Algorithm 
+# MAGIC 
+# MAGIC To implement the algorithm, the top edges with the highest betweenness (decided by 'k) are removed until the number of communities found by the "number_connected_components" methods matches a chosen number of communities (decided by 'noOfCom').
 
 # COMMAND ----------
 
-# MAGIC %md ### Algorithm
-
-# COMMAND ----------
-
-k = 10000
-noOfCom = 6
+k = 5000 # number if edges to cut at every iteration
+noOfCom = 4 # chosen number of communities 
 
 # COMMAND ----------
 
@@ -166,10 +168,8 @@ while ncc < noOfCom:
 # COMMAND ----------
 
 # MAGIC %md ### Output
-
-# COMMAND ----------
-
-# MAGIC %md #### Number of Connected Components
+# MAGIC 
+# MAGIC #### Double Checking Number of Connected Components
 
 # COMMAND ----------
 
@@ -190,6 +190,10 @@ print(communities)
 # COMMAND ----------
 
 print([len(l) for l in communities])
+
+# COMMAND ----------
+
+# MAGIC %md Unfortunately the communities seem to be very poorly balanced, as it seems that all nodes are clustering in one comunities except 5 others for the remaining communties. This issue seems to presist for a wide range of 'k' and 'noOfCom' choices.  Nonetheless, the outputted communties are saved for later analysis in task 4, where the cause of the poor communities balance will be analysed. 
 
 # COMMAND ----------
 
