@@ -31,7 +31,7 @@ ratings.count()
 
 # COMMAND ----------
 
-# MAGIC %md ### count number of distinct users  -- this is the number of unique userId that you will have in your adjacency list:
+# MAGIC %md ### count number of distinct users  
 
 # COMMAND ----------
 
@@ -129,7 +129,7 @@ jDf.count()
 
 # COMMAND ----------
 
-weightedEdges= j_df.groupby(df1['userId1'], df2['userId2']).count()
+weightedEdges= jDf.groupby(df1['userId1'], df2['userId2']).count()
 
 # COMMAND ----------
 
