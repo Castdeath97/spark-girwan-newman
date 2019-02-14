@@ -17,7 +17,7 @@ ratings.count()
 
 # COMMAND ----------
 
-# MAGIC %md ## Data Exploration 
+# MAGIC %md ## Data Exploration and Sanity Checks
 
 # COMMAND ----------
 
@@ -49,7 +49,7 @@ ratings.describe().show()
 
 # MAGIC %md ## Construction of ALS Reccomendation Model
 # MAGIC 
-# MAGIC To construct the reccomendation model, an explicit collaborative filter methood which uses ratings directly from the movie lens dataset is needed. However, a problem is that the movie ratings tend to be sparse. Hence, missing ratings need to be filled with a method like Alternating Least Squares which uses matrix factorisation to approximate ratings via optimisation.
+# MAGIC To construct the reccomendation model, an explicit collaborative filter method which uses ratings derived from the movie lens dataset is needed. However, a problem is that the movie ratings tend to be sparse. Hence, missing ratings need to be filled with a method like Alternating Least Squares which uses matrix factorisation to approximate ratings via optimisation.
 # MAGIC 
 # MAGIC ### Imports
 
@@ -74,17 +74,17 @@ ratings = ratings.drop('timestamp')
 
 # MAGIC %md ### Test Train Split
 # MAGIC 
-# MAGIC The data will be split into a trainning for the fit and a testing set for the evaulation later. A 80% 20% train and test split is used here as with the rest of the models used for the assignment. 
+# MAGIC The data will be split into a trainning for the fit and a testing set for the evaulation later. A 50% 50% train and test split is used here as with the rest of the models used for the assignment. 
 
 # COMMAND ----------
 
-(train, test) = ratings.randomSplit([0.80, 0.20], seed = 1234) # seed for reproducability 
+(train, test) = ratings.randomSplit([0.50, 0.50], seed = 1234) # seed for reproducability 
 
 # COMMAND ----------
 
 # MAGIC %md ### ALS Construction
 # MAGIC 
-# MAGIC The ALS is constructed by using the userIds to represent users, the movieIds to represent the items and the ratings column to represent the rating to fill.  Since the rating is not negative it, the non negative is True and preferences are not implicit. Also, a cold start strategy of drop is used to resolve the cold start problem.
+# MAGIC The ALS is constructed by using the userIds to represent users, the movieIds to represent the items and the ratings column to represent the rating to fill.  Since the rating is not negative it, the non negative is True and preferences are not implicit. Also, a cold start strategy of drop is used to resolve the cold start problem (users with no reviews).
 
 # COMMAND ----------
 
@@ -96,8 +96,7 @@ als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating",
 
 # MAGIC %md ### Tuning Hyperparameters using Cross Validation 
 # MAGIC 
-# MAGIC By using k fold cross validation, we can compare ALS models using different hyper parameters to pick the ideal hyperparameters. For ALS, the parameters we will tune will be:
-# MAGIC * rank: Number of features to discover
+# MAGIC By using k fold cross validation, we can compare ALS models using different hyper parameters to pick the ideal hyperparameters. For ALS, the parameters we will tune will be the rank which refers to the number of features to discover throughout the run.
 
 # COMMAND ----------
 
@@ -137,6 +136,10 @@ bestModel.rank
 
 # COMMAND ----------
 
+# MAGIC %md #### Best Model Results
+
+# COMMAND ----------
+
 predictions = bestModel.transform(test)
 rmse = evaluator.evaluate(predictions)
 print("Root-mean-square error = " + str(rmse))
@@ -144,3 +147,7 @@ print("Root-mean-square error = " + str(rmse))
 # COMMAND ----------
 
 display(predictions)
+
+# COMMAND ----------
+
+# MAGIC %md The model seems to quite well here considering the sparsity of the matrix, at least according to the root mean square error. However, perhaps the algorithm can be improved by feeding it communities of users instead of the whole users datasets, where users of said communities are likely to have similar preferneces and hence predicting ratings would be easier. This will be done using Girwan Newman in the remaining tasks.
