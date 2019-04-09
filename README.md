@@ -1,4 +1,4 @@
-# Spark Girwan-Newman
+# spark-girwan-newman
 
 ## Basic Description
 
